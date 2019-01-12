@@ -12,6 +12,7 @@ import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -128,12 +129,14 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
             mSerial.setParity(UsbSerialInterface.PARITY_NONE);
             mSerial.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
             mSerial.read(this);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
     }
 
     private void stopRead() {
         if (mSerial != null) {
             mSerial.syncClose();
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
     }
 
