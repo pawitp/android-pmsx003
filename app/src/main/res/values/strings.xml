@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">PMSensor</string>
+    <string name="ug_m3">µg/m³</string>
+</resources>
