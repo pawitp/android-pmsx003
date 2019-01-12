@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PMSensor</string>
+    <string name="app_name">PM Sensor</string>
     <string name="ug_m3">µg/m³</string>
     <string name="no_device_found">No device found</string>
     <string name="stopped">Stopped</string>
