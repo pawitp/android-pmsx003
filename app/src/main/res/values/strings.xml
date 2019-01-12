@@ -6,4 +6,8 @@
     <string name="using_atm">Using ATM</string>
     <string name="using_std">Using STD</string>
     <string name="connected_to">Connected to %1$s</string>
+    <string name="aqi">AQI</string>
+    <string name="pm1_0">PM 1.0</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
 </resources>

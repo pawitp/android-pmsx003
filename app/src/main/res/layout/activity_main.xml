@@ -26,7 +26,7 @@
         android:layout_marginStart="24dp"
         android:layout_marginTop="16dp"
         android:onClick="start"
-        android:text="Start"
+        android:text="@string/start"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -36,7 +36,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:onClick="stop"
-        android:text="Stop"
+        android:text="@string/stop"
         app:layout_constraintBaseline_toBaselineOf="@+id/btnStart"
         app:layout_constraintStart_toEndOf="@+id/btnStart" />
 
@@ -58,7 +58,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="32dp"
-        android:text="PM 1.0"
+        android:text="@string/pm1_0"
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
         android:textSize="30sp"
         android:textStyle="bold"
@@ -70,7 +70,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:text="AQI"
+        android:text="@string/aqi"
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
         android:textSize="26sp"
         android:textStyle="bold"
@@ -184,7 +184,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:checked="true"
-        android:text="Use ATM"
+        android:text="@string/using_atm"
         app:layout_constraintBaseline_toBaselineOf="@+id/btnStop"
         app:layout_constraintStart_toEndOf="@+id/btnStop" />
 
