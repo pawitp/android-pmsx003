@@ -2,6 +2,8 @@
 
 An Android App to query PMSx003 sensor and display the data on screen.
 
+Available on [Google Play](https://play.google.com/store/apps/details?id=pawitp.pmsensor)
+
 ## Features
 
  - Query PM1.0, PM2.5 and PM10 data from a PMSx003 sensor via the serial API.
