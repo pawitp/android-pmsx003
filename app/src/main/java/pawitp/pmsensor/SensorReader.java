@@ -22,7 +22,7 @@ public class SensorReader {
     public String getCurrentBuffer() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < DATA_SIZE; i++) {
-            sb.append(mBuffer.get(i));
+            sb.append(mBuffer.get(i) & 0xff);
             sb.append(" ");
         }
         return sb.toString();

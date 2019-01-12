@@ -2,8 +2,10 @@ package pawitp.pmsensor;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -24,21 +26,46 @@ import java.util.HashMap;
 
 public class MainActivity extends Activity implements UsbSerialInterface.UsbReadCallback {
 
-    UsbManager mUsbManager;
-    UsbSerialDevice mSerial;
-    TextView mStatus;
-    TextView mBuffer;
-    TextView mTextPm1_0;
-    TextView mTextPm2_5;
-    TextView mTextPm10;
-    TextView mTextAqiPm2_5;
-    TextView mTextAqiPm10;
-    Switch mDataSwitch;
-    final SensorReader mSensorReader = new SensorReader();
+    private static final String ACTION_USB_PERMISSION = "pawitp.pmsensor.USB_PERMISSION";
+    private static final String TAG = "MainActivity";
+
+    private UsbManager mUsbManager;
+    private UsbSerialDevice mSerial;
+    private TextView mStatus;
+    private TextView mBuffer;
+    private TextView mTextPm1_0;
+    private TextView mTextPm2_5;
+    private TextView mTextPm10;
+    private TextView mTextAqiPm2_5;
+    private TextView mTextAqiPm10;
+    private Switch mDataSwitch;
+    private PendingIntent mPermissionIntent;
+    private final SensorReader mSensorReader = new SensorReader();
+
+    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    connect(device);
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Register callback to connect to device after asking for permission
+        mPermissionIntent = PendingIntent.getBroadcast(this, 0,
+                new Intent(ACTION_USB_PERMISSION), 0);
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(mUsbReceiver, filter);
+
         setContentView(R.layout.activity_main);
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         mStatus = findViewById(R.id.txtStatus);
@@ -51,41 +78,72 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
         mDataSwitch = findViewById(R.id.dataSwitch);
         mDataSwitch.setOnCheckedChangeListener((compoundButton, b) -> dataSwitch());
         dataSwitch();
-        updateUi();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i(TAG, "onPause");
+        stopRead();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i(TAG, "onResume");
+        startRead();
     }
 
     public void start(View view) {
-        UsbDevice device = findUsbDevice("CP2102");
+        UsbDevice device = findUsbDevice();
         if (device != null) {
             if (!mUsbManager.hasPermission(device)) {
-                mUsbManager.requestPermission(device, PendingIntent.getActivity(this, 0, new Intent("test"), 0));
+                mUsbManager.requestPermission(device, mPermissionIntent);
             } else {
-                UsbDeviceConnection usbConnection = mUsbManager.openDevice(device);
-                mSerial = UsbSerialDevice.createUsbSerialDevice(device, usbConnection);
-                mSerial.open();
-                mSerial.setBaudRate(9600);
-                mSerial.setDataBits(UsbSerialInterface.DATA_BITS_8);
-                mSerial.setParity(UsbSerialInterface.PARITY_NONE);
-                mSerial.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
-                mSerial.read(this);
-                mStatus.setText("Reading from " + device.getProductName());
+                connect(device);
             }
         } else {
-            mStatus.setText("No device found");
+            mStatus.setText(R.string.no_device_found);
         }
     }
 
     public void stop(View view) {
-        mSerial.syncClose();
-        mStatus.setText("Stopped");
+        stopRead();
+        mSerial = null;
+        mStatus.setText(R.string.stopped);
+    }
+
+    private void connect(UsbDevice device) {
+        UsbDeviceConnection usbConnection = mUsbManager.openDevice(device);
+        mSerial = UsbSerialDevice.createUsbSerialDevice(device, usbConnection);
+        startRead();
+        mStatus.setText(getString(R.string.connected_to, device.getProductName()));
+    }
+
+    private void startRead() {
+        if (mSerial != null) {
+            mSerial.open();
+            mSerial.setBaudRate(9600);
+            mSerial.setDataBits(UsbSerialInterface.DATA_BITS_8);
+            mSerial.setParity(UsbSerialInterface.PARITY_NONE);
+            mSerial.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
+            mSerial.read(this);
+        }
+    }
+
+    private void stopRead() {
+        if (mSerial != null) {
+            mSerial.syncClose();
+        }
     }
 
     private void dataSwitch() {
         if (mDataSwitch.isChecked()) {
-            mDataSwitch.setText("Using ATM");
+            mDataSwitch.setText(R.string.using_atm);
         } else {
-            mDataSwitch.setText("Using STD");
+            mDataSwitch.setText(R.string.using_std);
         }
+        updateUi();
     }
 
     private void updateUi() {
@@ -108,13 +166,23 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
         }
     }
 
-    private UsbDevice findUsbDevice(String name) {
+    private UsbDevice findUsbDevice() {
         HashMap<String, UsbDevice> deviceList = mUsbManager.getDeviceList();
+
+        // Try and find a known device
         for (UsbDevice dev : deviceList.values()) {
-            if (dev.getProductName().contains(name)) {
+            String productName = dev.getProductName();
+            if (productName != null && productName.contains("CP2102")) {
                 return dev;
             }
         }
+
+        // None found, try the first one if exists
+        if (!deviceList.isEmpty()) {
+            return deviceList.values().iterator().next();
+        }
+
+        // Else return null
         return null;
     }
 
@@ -125,4 +193,5 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
         }
         runOnUiThread(this::updateUi);
     }
+
 }
