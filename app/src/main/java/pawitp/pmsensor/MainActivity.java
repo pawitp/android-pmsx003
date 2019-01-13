@@ -53,6 +53,8 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
                 if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                     connect(device);
                 }
+            } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                stop(null);
             }
         }
     };
@@ -65,6 +67,7 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
         mPermissionIntent = PendingIntent.getBroadcast(this, 0,
                 new Intent(ACTION_USB_PERMISSION), 0);
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(mUsbReceiver, filter);
 
         setContentView(R.layout.activity_main);
