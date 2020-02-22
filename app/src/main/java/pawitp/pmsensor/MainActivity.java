@@ -92,10 +92,23 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-        Log.i(TAG, "onResume");
+        Log.i(TAG, "onResume " + getIntent());
         startRead();
+
+        if (mSerial == null) {
+            // We have a device from USB_DEVICE_ATTACHED intent
+            UsbDevice intentDevice = getIntent().getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            if (intentDevice != null) {
+                connect(intentDevice);
+            }
+        }
     }
 
     public void start(View view) {
@@ -118,28 +131,43 @@ public class MainActivity extends Activity implements UsbSerialInterface.UsbRead
     }
 
     private void connect(UsbDevice device) {
-        UsbDeviceConnection usbConnection = mUsbManager.openDevice(device);
-        mSerial = UsbSerialDevice.createUsbSerialDevice(device, usbConnection);
-        startRead();
-        mStatus.setText(getString(R.string.connected_to, device.getProductName()));
+        Log.i(TAG, "Connect: " + device);
+        try {
+            UsbDeviceConnection usbConnection = mUsbManager.openDevice(device);
+            mSerial = UsbSerialDevice.createUsbSerialDevice(device, usbConnection);
+            startRead();
+            mStatus.setText(getString(R.string.connected_to, device.getProductName()));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to connect", e);
+            stop(null);
+        }
     }
 
     private void startRead() {
-        if (mSerial != null) {
-            mSerial.open();
-            mSerial.setBaudRate(9600);
-            mSerial.setDataBits(UsbSerialInterface.DATA_BITS_8);
-            mSerial.setParity(UsbSerialInterface.PARITY_NONE);
-            mSerial.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
-            mSerial.read(this);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        try {
+            if (mSerial != null) {
+                mSerial.open();
+                mSerial.setBaudRate(9600);
+                mSerial.setDataBits(UsbSerialInterface.DATA_BITS_8);
+                mSerial.setParity(UsbSerialInterface.PARITY_NONE);
+                mSerial.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
+                mSerial.read(this);
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to read", e);
+            stop(null);
         }
     }
 
     private void stopRead() {
-        if (mSerial != null) {
-            mSerial.syncClose();
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        try {
+            if (mSerial != null) {
+                mSerial.syncClose();
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to stop", e);
         }
     }
 
